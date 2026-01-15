@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PanelManager : MonoBehaviour
 {
@@ -26,17 +28,32 @@ public class PanelManager : MonoBehaviour
 
    [SerializeField] private GameObject winnerUIObj;
    [SerializeField] private TextMeshProUGUI overallWinnerText;
+
+   [SerializeField] private Button startMatchButton;
+
+   [SerializeField] private TextMeshProUGUI timerText;
    
    private void Awake()
    {
       connectionPanel.SetActive(true);
       gameplayPanel.SetActive(false);
+      startMatchButton.gameObject.SetActive(false);
+      startMatchButton.onClick.AddListener(() =>
+      {
+         startMatchButton.gameObject.SetActive(false);
+         NetworkGameManager.Instance.StartCountDown();
+      });
    }
 
    private void Start()
    {
       NetworkCallsManager.Instance.RegisterOnConnectedToNetwork(EnableGamePlayPanel);
       NetworkGameManager.Instance.RegisterOnCurrentRoundValueChanged(OnRoundValueChanged);
+      NetworkGameManager.Instance.RegisterTimerValueChanged(OnTimerValueChanged);
+      NetworkGameManager.Instance.OnTimerEnd += () =>
+      {
+         timerText.gameObject.SetActive(false); 
+      };
    }
 
    public void AnnounceWinner(int winnerId)
@@ -45,6 +62,15 @@ public class PanelManager : MonoBehaviour
       overallWinnerText.text = "Player_" + winnerId;
    }
 
+   public void EnableTimerText()
+   {
+      timerText.gameObject.SetActive(true);
+   }
+
+   public void ShowStartMatchButton()
+   {
+      startMatchButton.gameObject.SetActive(true);
+   }
    public void EnableGamePlayPanel()
    {
       connectionPanel.SetActive(false);
@@ -63,6 +89,15 @@ public class PanelManager : MonoBehaviour
       if (roundCountText != null)
       {
          roundCountText.text = currentRound.ToString();
+      }
+      timerText.gameObject.SetActive(true);
+   }
+
+   private void OnTimerValueChanged(int prev, int current)
+   {
+      if (timerText != null)
+      {
+         timerText.text = current.ToString();
       }
    }
 

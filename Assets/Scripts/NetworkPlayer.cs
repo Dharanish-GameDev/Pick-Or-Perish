@@ -13,6 +13,8 @@ public class NetworkPlayer : NetworkBehaviour
     private NetworkVariable<int> currentNumber = new NetworkVariable<int>(0,NetworkVariableReadPermission.Everyone,NetworkVariableWritePermission.Server);
     private NetworkVariable<int> currentScore = new NetworkVariable<int>(3,NetworkVariableReadPermission.Everyone,NetworkVariableWritePermission.Server);
     private NetworkVariable<int> playerActiveState = new NetworkVariable<int>(0); // 0 is Active, 1 - Eliminated
+
+    private bool isSubmitted = false;
     
     public int GetPlayerID() => (int)OwnerClientId;
 
@@ -58,6 +60,25 @@ public class NetworkPlayer : NetworkBehaviour
         }
         NetworkGameManager.Instance.RegisterOnCurrentRoundValueChanged(OnCurrentRoundChanged);
         NetworkGameManager.Instance.RegisterMeToTheMatch(this);
+        NetworkGameManager.Instance.OnTimerEnd += () =>
+        {
+            if (!isSubmitted && playerActiveState.Value == 0 && IsOwner) // Means Still Playing And Not Submitted
+            {
+                // Making it Force Submit
+                _playerUISet.SetSubmitButtonInteractable(false);
+                int value = _playerUISet.GetInputValue();
+                if (value > 0)
+                {
+                    SetCurrentNumber(value);
+                    Debug.Log("Force Submitting");
+                }
+                else
+                {
+                    Debug.Log("Submitting Previous Number : " + lastSubmitterValue);
+                    SetCurrentNumber(lastSubmitterValue);
+                }
+            }
+        };
         RegisterCurrentNumberValueChanged(OnCurrentNumberChanged);
     }
 
@@ -69,22 +90,25 @@ public class NetworkPlayer : NetworkBehaviour
             Destroy(_playerUISet.gameObject);
         }
     }
-
+    int lastSubmitterValue = 0;
     private void OnCurrentNumberChanged(int prev, int current)
     {
         if(current < 0 || !IsOwner) return;
+        lastSubmitterValue = current;
+        isSubmitted = true;
         SubmitCurrentNumberServerRPC();
     }
     private void OnCurrentRoundChanged(int prevRound,int currentRound)
     {
         if (IsOwner)
         {
-            SetCurrentNumber(-1); // Means To Clear it Up   
+            SetCurrentNumber(-1); // Means To Clear it Up
         }
         if (_playerUISet != null)
         {
             _playerUISet.SetSubmitButtonInteractable(true);
         }
+        isSubmitted = false;
     }
     public void UpdateCurrentScore(int score)
     {

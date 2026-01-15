@@ -31,5 +31,7 @@ public class NetworkCallsManager : NetworkBehaviour
         OnConnectedToNetwork?.Invoke();
         string temp = NetworkManager.Singleton.IsHost ? "Host" : $"Client_{NetworkManager.Singleton.LocalClientId}";
         Debug.Log("Connected to Network! & You're " + temp);
+        if(IsHost)
+            NetworkGameManager.Instance.PanelManager.ShowStartMatchButton();
     }
 }

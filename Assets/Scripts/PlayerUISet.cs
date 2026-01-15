@@ -102,4 +102,13 @@ public class PlayerUISet : MonoBehaviour
     {
         submitButton.interactable = interactable;
     }
+    
+    public int GetInputValue()
+    {
+        if (int.TryParse(numberInput.text, out var result))
+        {
+            return result;
+        }
+        return -1;
+    }
 }

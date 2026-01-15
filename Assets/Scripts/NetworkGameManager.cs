@@ -17,9 +17,55 @@ public class NetworkGameManager : NetworkBehaviour
    [SerializeField] private int countDownSeconds = 3;
 
    private NetworkVariable<int> currentRound = new NetworkVariable<int>(1);
-   
+
    private List<NetworkPlayer> players = new List<NetworkPlayer>();
    
+   public NetworkVariable<int> timer = new NetworkVariable<int>(25);
+
+   public event Action OnTimerEnd;
+
+   [SerializeField] private int DefaultWaitTime = 25;
+   private Coroutine countDownCoroutine;
+   public void StartCountDown()
+   {
+      if(winnerFound) return;
+      if (countDownCoroutine != null)
+      {
+         StopCoroutine(countDownCoroutine);
+         countDownCoroutine = null;
+      }
+      EnableTimerTextClientRPC();
+      countDownCoroutine = StartCoroutine(CountDownCoroutine());
+   }
+
+   private IEnumerator CountDownCoroutine()
+   {
+      timer.Value = DefaultWaitTime;
+      while (timer.Value > 0)
+      {
+         yield return new WaitForSeconds(1f);
+         timer.Value--;
+      }
+      FireTimerCountdownEndClientRPC();
+   }
+   [ClientRpc]
+   private void FireTimerCountdownEndClientRPC()
+   {
+      Debug.Log($"Countdown finished in {countDownSeconds} Secs");
+      OnTimerEnd?.Invoke();
+   }
+
+   [ClientRpc]
+   private void EnableTimerTextClientRPC()
+   {
+      _panelManager.EnableTimerText();
+   }
+
+   public void RegisterTimerValueChanged(NetworkVariable<int>.OnValueChangedDelegate onValueChanged)
+   {
+      timer.OnValueChanged -= onValueChanged;
+      timer.OnValueChanged += onValueChanged;
+   }
 
    public void RegisterOnCurrentRoundValueChanged(NetworkVariable<int>.OnValueChangedDelegate onValueChanged)
    {
@@ -55,7 +101,13 @@ public class NetworkGameManager : NetworkBehaviour
          // Need to Start the Timer
          
          Debug.Log($"Round Finishing in {countDownSeconds} Secs");
-         
+
+         if (countDownCoroutine != null)
+         {
+            StopCoroutine(countDownCoroutine);
+            countDownCoroutine = null;
+         }
+         FireTimerCountdownEndClientRPC();
          StartCountDownClientRPC(countDownSeconds);
          
          Invoke(nameof(AdvanceRound),countDownSeconds);
@@ -85,7 +137,7 @@ public class NetworkGameManager : NetworkBehaviour
    }
    private void AdvanceRound()
    {
-      if (IsServer)
+      if (IsServer && !winnerFound)
       {
          int temp = currentRound.Value;
          temp+= 1;
@@ -113,11 +165,13 @@ public class NetworkGameManager : NetworkBehaviour
             }
             
             UpdatePointChanges(playerScores);
+            StartCountDown();
          }
       }
       submittedNumbersDict.Clear();
    }
 
+   private bool winnerFound = false;
    private void UpdatePointChanges(Dictionary<int, int> pointChanges)
    {
       foreach (var change in pointChanges)
@@ -148,6 +202,7 @@ public class NetworkGameManager : NetworkBehaviour
          {
             int winnerId = remainingPlayers[0];
             Debug.Log($"<color=yellow> Winner Found: Player_{winnerId} </color>");
+            winnerFound = true;
             AnnounceWinnerClientRPC(winnerId);
             return;
          }
@@ -161,6 +216,7 @@ public class NetworkGameManager : NetworkBehaviour
          else if (remainingPlayers.Count == 0)
          {
             Debug.LogError("No players remaining - unexpected state!");
+            winnerFound = true;
             //EndGame(-1); // Draw or error
          }
       }
