@@ -42,7 +42,7 @@ public class PanelManager : MonoBehaviour
    public void AnnounceWinner(int winnerId)
    {
       winnerUIObj.SetActive(true);
-      winnerNameText.text = "Player_" + winnerId;
+      overallWinnerText.text = "Player_" + winnerId;
    }
 
    public void EnableGamePlayPanel()
