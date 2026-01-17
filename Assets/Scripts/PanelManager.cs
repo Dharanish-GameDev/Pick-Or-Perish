@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,136 +9,141 @@ using UnityEngine.UI;
 
 public class PanelManager : MonoBehaviour
 {
-   [SerializeField] private GameObject connectionPanel;
-   [SerializeField] private GameObject gameplayPanel;
-   
-   [SerializeField] private RectTransform playerUISetsParent;
-   [SerializeField] private PlayerUISet playerUISetRef;
+    [SerializeField] private GameObject connectionPanel;
+    [SerializeField] private GameObject gameplayPanel;
 
-   [SerializeField] private TextMeshProUGUI roundCountText;
-   
-   [SerializeField] private GameObject timerObject;
-   
-   [SerializeField] private TextMeshProUGUI timeText;
-   
-   private Coroutine countdownRoutine;
+    [SerializeField] private RectTransform playerUISetsParent;
+    [SerializeField] private PlayerUISet playerUISetRef;
 
-   [SerializeField] private GameObject afterRoundObj;
-   [SerializeField] private TextMeshProUGUI targetNumberText;
-   [SerializeField] private TextMeshProUGUI winnerNameText;
+    [SerializeField] private TextMeshProUGUI roundCountText;
 
-   [SerializeField] private GameObject winnerUIObj;
-   [SerializeField] private TextMeshProUGUI overallWinnerText;
+    [SerializeField] private GameObject timerObject;
+    [SerializeField] private TextMeshProUGUI timeText;
+    private Coroutine countdownRoutine;
 
-   [SerializeField] private Button startMatchButton;
+    [SerializeField] private GameObject afterRoundObj;
+    [SerializeField] private TextMeshProUGUI targetNumberText;
+    [SerializeField] private TextMeshProUGUI winnerNameText;
 
-   [SerializeField] private TextMeshProUGUI timerText;
-   
-   private void Awake()
-   {
-      connectionPanel.SetActive(true);
-      gameplayPanel.SetActive(false);
-      startMatchButton.gameObject.SetActive(false);
-      startMatchButton.onClick.AddListener(() =>
-      {
-         startMatchButton.gameObject.SetActive(false);
-         NetworkGameManager.Instance.StartCountDown();
-      });
-   }
+    [SerializeField] private GameObject winnerUIObj;
+    [SerializeField] private TextMeshProUGUI overallWinnerText;
 
-   private void Start()
-   {
-      NetworkCallsManager.Instance.RegisterOnConnectedToNetwork(EnableGamePlayPanel);
-      NetworkGameManager.Instance.RegisterOnCurrentRoundValueChanged(OnRoundValueChanged);
-      NetworkGameManager.Instance.RegisterTimerValueChanged(OnTimerValueChanged);
-      NetworkGameManager.Instance.OnTimerEnd += () =>
-      {
-         timerText.gameObject.SetActive(false); 
-      };
-   }
+    [SerializeField] private Button startMatchButton;
 
-   public void AnnounceWinner(int winnerId)
-   {
-      winnerUIObj.SetActive(true);
-      overallWinnerText.text = "Player_" + winnerId;
-   }
+    [SerializeField] private TextMeshProUGUI timerText;
 
-   public void EnableTimerText()
-   {
-      timerText.gameObject.SetActive(true);
-   }
+    private void Awake()
+    {
+        connectionPanel.SetActive(true);
+        gameplayPanel.SetActive(false);
+        startMatchButton.gameObject.SetActive(false);
+        startMatchButton.onClick.AddListener(() =>
+        {
+            startMatchButton.gameObject.SetActive(false);
+            NetworkGameManager.Instance.StartCountDown();
+        });
+    }
 
-   public void ShowStartMatchButton()
-   {
-      startMatchButton.gameObject.SetActive(true);
-   }
-   public void EnableGamePlayPanel()
-   {
-      connectionPanel.SetActive(false);
-      gameplayPanel.SetActive(true);
-   }
+    private void Start()
+    {
+        NetworkCallsManager.Instance.RegisterOnConnectedToNetwork(EnableGamePlayPanel);
+        NetworkGameManager.Instance.RegisterOnCurrentRoundValueChanged(OnRoundValueChanged);
+        NetworkGameManager.Instance.RegisterTimerValueChanged(OnTimerValueChanged);
+        NetworkGameManager.Instance.OnTimerEnd += () =>
+        {
+            timerText.gameObject.SetActive(false);
+        };
+    }
 
-   public PlayerUISet CreatePlayerUISet()
-   {
-      PlayerUISet temp = null;
-      temp = Instantiate(playerUISetRef, playerUISetsParent);
-      return temp;
-   }
+    public void AnnounceWinner(int winnerId)
+    {
+        winnerUIObj.SetActive(true);
+        overallWinnerText.text = "Player_" + winnerId;
+    }
 
-   private void OnRoundValueChanged(int previousRound, int currentRound)
-   {
-      if (roundCountText != null)
-      {
-         roundCountText.text = currentRound.ToString();
-      }
-      timerText.gameObject.SetActive(true);
-   }
+    public void EnableTimerText()
+    {
+        timerText.gameObject.SetActive(true);
+    }
 
-   private void OnTimerValueChanged(int prev, int current)
-   {
-      if (timerText != null)
-      {
-         timerText.text = current.ToString();
-      }
-   }
+    public void ShowStartMatchButton()
+    {
+        startMatchButton.gameObject.SetActive(true);
+    }
+    public void EnableGamePlayPanel()
+    {
+        connectionPanel.SetActive(false);
+        gameplayPanel.SetActive(true);
+    }
 
-   public void StartCountdown(int timeInSeconds)
-   {
-      if (countdownRoutine != null)
-         StopCoroutine(countdownRoutine);
-      
-      afterRoundObj.SetActive(false);
-      timerObject.SetActive(true);
-      countdownRoutine = StartCoroutine(Countdown(timeInSeconds));
-   }
+    public PlayerUISet CreatePlayerUISet()
+    {
+        PlayerUISet temp = Instantiate(playerUISetRef, playerUISetsParent);
+        return temp;
+    }
 
-   private IEnumerator Countdown(int time)
-   {
-      while (time > 0)
-      {
-         UpdateTimerUI(time);
-         yield return new WaitForSeconds(1f);
-         time--;
-      }
+    private void OnRoundValueChanged(int previousRound, int currentRound)
+    {
+        if (roundCountText != null)
+        {
+            roundCountText.text = currentRound.ToString();
+        }
+        timerText.gameObject.SetActive(true);
+    }
 
-      UpdateTimerUI(0);
-      timerObject.SetActive(false); // hide when done
-   }
+    private void OnTimerValueChanged(int prev, int current)
+    {
+        if (timerText != null)
+        {
+            timerText.text = current.ToString();
+        }
+    }
 
-   private void UpdateTimerUI(int time)
-   {
-      int minutes = time / 60;
-      int seconds = time % 60;
-      timeText.text = $"{minutes:00}:{seconds:00}";
-   }
+    public void StartCountdown(int timeInSeconds)
+    {
+        if (countdownRoutine != null)
+            StopCoroutine(countdownRoutine);
 
-   public void UpdateAfterRoundUI(int playerId, float targetNumber)
-   {
-      afterRoundObj.SetActive(true);
-      
-      winnerNameText.text = "Player_" + playerId;
+        afterRoundObj.SetActive(false);
+        timerObject.SetActive(true);
+        countdownRoutine = StartCoroutine(Countdown(timeInSeconds));
+    }
 
-      targetNumberText.text = Mathf.RoundToInt(targetNumber).ToString();
-   }
+    private IEnumerator Countdown(int time)
+    {
+        while (time > 0)
+        {
+            UpdateTimerUI(time);
+            yield return new WaitForSeconds(1f);
+            time--;
+        }
+
+        UpdateTimerUI(0);
+        timerObject.SetActive(false); // hide when done
+    }
+
+    private void UpdateTimerUI(int time)
+    {
+        int minutes = time / 60;
+        int seconds = time % 60;
+        timeText.text = $"{minutes:00}:{seconds:00}";
+    }
+
+    // 🔹 PATCHED: handle multiple winners or no winner
+    public void UpdateAfterRoundUI(int[] winnerIds, float targetNumber)
+    {
+        afterRoundObj.SetActive(true);
+
+        // Show winner(s) or no winner
+        if (winnerIds == null || winnerIds.Length == 0)
+        {
+            winnerNameText.text = "No Winner";
+        }
+        else
+        {
+            winnerNameText.text = string.Join(", ", winnerIds.Select(id => "Player_" + id));
+        }
+
+        targetNumberText.text = Mathf.RoundToInt(targetNumber).ToString();
+    }
 }
-
