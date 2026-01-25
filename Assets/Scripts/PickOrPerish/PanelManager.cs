@@ -17,13 +17,13 @@ public class PanelManager : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI roundCountText;
 
-    [SerializeField] private GameObject timerObject;
-    [SerializeField] private TextMeshProUGUI timeText;
+    //[SerializeField] private GameObject timerObject;
+    //[SerializeField] private TextMeshProUGUI timeText;
     private Coroutine countdownRoutine;
 
     [SerializeField] private GameObject afterRoundObj;
     [SerializeField] private TextMeshProUGUI targetNumberText;
-    [SerializeField] private TextMeshProUGUI winnerNameText;
+   // [SerializeField] private TextMeshProUGUI winnerNameText;
 
     [SerializeField] private GameObject winnerUIObj;
     [SerializeField] private TextMeshProUGUI overallWinnerText;
@@ -51,7 +51,7 @@ public class PanelManager : MonoBehaviour
         NetworkGameManager.Instance.RegisterTimerValueChanged(OnTimerValueChanged);
         NetworkGameManager.Instance.OnTimerEnd += () =>
         {
-            timerText.gameObject.SetActive(false);
+            // timerText.gameObject.SetActive(false);
         };
     }
 
@@ -95,7 +95,14 @@ public class PanelManager : MonoBehaviour
     {
         if (timerText != null)
         {
-            timerText.text = current.ToString();
+            int minutes = current / 60;
+            int seconds = current % 60;
+            
+            timerText.text = $"{minutes:00}:{seconds:00}";
+            
+            timerText.text = $"{minutes:00}.{seconds:00}";
+
+            timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
         }
     }
 
@@ -103,9 +110,7 @@ public class PanelManager : MonoBehaviour
     {
         if (countdownRoutine != null)
             StopCoroutine(countdownRoutine);
-
-        afterRoundObj.SetActive(false);
-        timerObject.SetActive(true);
+        // timerObject.SetActive(true);
         countdownRoutine = StartCoroutine(Countdown(timeInSeconds));
     }
 
@@ -119,31 +124,39 @@ public class PanelManager : MonoBehaviour
         }
 
         UpdateTimerUI(0);
-        timerObject.SetActive(false); // hide when done
     }
 
     private void UpdateTimerUI(int time)
     {
         int minutes = time / 60;
         int seconds = time % 60;
-        timeText.text = $"{minutes:00}:{seconds:00}";
+        timerText.text = $"{minutes:00}:{seconds:00}";
     }
 
     // 🔹 PATCHED: handle multiple winners or no winner
+
+    private void DisableAfterRoundUI()
+    {
+        afterRoundObj.SetActive(false);
+    }
+    
     public void UpdateAfterRoundUI(int[] winnerIds, float targetNumber)
     {
         afterRoundObj.SetActive(true);
-
-        // Show winner(s) or no winner
-        if (winnerIds == null || winnerIds.Length == 0)
-        {
-            winnerNameText.text = "No Winner";
-        }
-        else
-        {
-            winnerNameText.text = string.Join(", ", winnerIds.Select(id => "Player_" + id));
-        }
+        //
+        // // Show winner(s) or no winner
+        // if (winnerIds == null || winnerIds.Length == 0)
+        // {
+        //     winnerNameText.text = "No Winner";
+        // }
+        // else
+        // {
+        //     winnerNameText.text = string.Join(", ", winnerIds.Select(id => "Player_" + id));
+        // }
+        
+        
 
         targetNumberText.text = Mathf.RoundToInt(targetNumber).ToString();
+        Invoke(nameof(DisableAfterRoundUI),2.5f);
     }
 }
